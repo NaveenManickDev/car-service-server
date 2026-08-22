@@ -6,6 +6,7 @@ import db from "./database/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import licenseRoutes from "./routes/licenseRoutes.js";
+import backupRoutes from "./routes/backupRoutes.js";
 
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
@@ -75,6 +76,11 @@ app.use(
 app.use(
     "/api/license",
     licenseRoutes
+);
+
+app.use(
+    "/api/backup",
+    backupRoutes
 );
 
 // =====================================

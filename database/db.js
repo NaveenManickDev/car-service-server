@@ -47,6 +47,25 @@ db.prepare(`
     )
 `).run();
 
+// =====================================
+// BACKUPS TABLE
+// =====================================
+
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS backups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        file_name TEXT NOT NULL,
+        storage_name TEXT NOT NULL UNIQUE,
+        sha256 TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (user_id)
+            REFERENCES users(id)
+    )
+`).run();
+
 console.log("Server database initialized successfully.");
 
 export default db;
