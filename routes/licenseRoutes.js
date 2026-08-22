@@ -2,11 +2,51 @@ import express from "express";
 
 import {
     activateLicense,
+    createLicense,
     validateLicense,
 } from "../controllers/licenseController.js";
+import { requireAdmin } from "../middleware/adminMiddleware.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/license/admin/create:
+ *   post:
+ *     summary: Create a license key
+ *     tags: [License Admin]
+ *     parameters:
+ *       - in: header
+ *         name: x-admin-secret
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               licenseKey:
+ *                 type: string
+ *                 example: CAR-SERVICE-2026-001
+ *     responses:
+ *       201:
+ *         description: License created successfully
+ *       401:
+ *         description: Invalid admin credentials
+ *       409:
+ *         description: License key already exists
+ *       503:
+ *         description: Admin secret is not configured
+ */
+router.post(
+    "/admin/create",
+    requireAdmin,
+    createLicense
+);
 
 /**
  * @swagger

@@ -1,4 +1,43 @@
+import crypto from "crypto";
 import db from "../database/db.js";
+
+export function createLicense(req, res) {
+    try {
+        const requestedKey = req.body.licenseKey?.trim();
+        const licenseKey = requestedKey || `CAR-${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
+
+        const result = db
+            .prepare(
+                `INSERT INTO licenses (license_key)
+                 VALUES (?)`
+            )
+            .run(licenseKey);
+
+        return res.status(201).json({
+            success: true,
+            message: "License created successfully.",
+            license: {
+                id: result.lastInsertRowid,
+                licenseKey,
+                status: "active",
+            },
+        });
+    } catch (error) {
+        if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
+            return res.status(409).json({
+                success: false,
+                error: "License key already exists.",
+            });
+        }
+
+        console.error("License creation failed:", error);
+
+        return res.status(500).json({
+            success: false,
+            error: "License creation failed.",
+        });
+    }
+}
 
 export function activateLicense(req, res) {
     try {
