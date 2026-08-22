@@ -1,5 +1,8 @@
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import db from "../database/db.js";
+
+const jwtSecret = process.env.JWT_SECRET || "car-service-local-development-secret";
 
 function hashPassword(password) {
     const salt = crypto.randomBytes(16).toString("hex");
@@ -9,6 +12,23 @@ function hashPassword(password) {
         .toString("hex");
 
     return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+    const [salt, hash] = storedHash.split(":");
+
+    if (!salt || !hash) {
+        return false;
+    }
+
+    const derivedHash = crypto
+        .scryptSync(password, salt, 64)
+        .toString("hex");
+
+    return crypto.timingSafeEqual(
+        Buffer.from(hash, "hex"),
+        Buffer.from(derivedHash, "hex")
+    );
 }
 
 export function registerUser(req, res) {
@@ -95,6 +115,60 @@ export function registerUser(req, res) {
         return res.status(500).json({
             success: false,
             error: "Registration failed.",
+        });
+    }
+}
+
+export function loginUser(req, res) {
+    try {
+        const { mobile, password } = req.body;
+
+        if (!mobile || !password) {
+            return res.status(400).json({
+                success: false,
+                error: "Mobile and password are required.",
+            });
+        }
+
+        const cleanMobile = mobile.trim();
+        const user = db
+            .prepare(
+                `SELECT id, name, mobile, password_hash
+                 FROM users
+                 WHERE mobile = ?`
+            )
+            .get(cleanMobile);
+
+        if (!user || !verifyPassword(password, user.password_hash)) {
+            return res.status(401).json({
+                success: false,
+                error: "Invalid mobile number or password.",
+            });
+        }
+
+        const token = jwt.sign(
+            { userId: user.id, mobile: user.mobile },
+            jwtSecret,
+            { expiresIn: "1d" }
+        );
+
+        return res.json({
+            success: true,
+            message: "Login successful.",
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                mobile: user.mobile,
+            },
+        });
+
+    } catch (error) {
+        console.error("User login failed:", error);
+
+        return res.status(500).json({
+            success: false,
+            error: "Login failed.",
         });
     }
 }

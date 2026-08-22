@@ -1,0 +1,116 @@
+import db from "../database/db.js";
+
+export function activateLicense(req, res) {
+    try {
+        const { licenseKey, machineId } = req.body;
+
+        if (!licenseKey || !machineId) {
+            return res.status(400).json({
+                success: false,
+                error: "License key and machine ID are required.",
+            });
+        }
+
+        const cleanLicenseKey = licenseKey.trim();
+        const cleanMachineId = machineId.trim();
+        const license = db
+            .prepare(
+                `SELECT id, license_key, user_id, status, machine_id, activated_at
+                 FROM licenses
+                 WHERE license_key = ?`
+            )
+            .get(cleanLicenseKey);
+
+        if (!license) {
+            return res.status(404).json({
+                success: false,
+                error: "License key not found.",
+            });
+        }
+
+        if (license.status !== "active") {
+            return res.status(409).json({
+                success: false,
+                error: `License is ${license.status}.`,
+            });
+        }
+
+        if (license.user_id && license.user_id !== req.user.userId) {
+            return res.status(409).json({
+                success: false,
+                error: "License is already activated by another user.",
+            });
+        }
+
+        if (license.machine_id && license.machine_id !== cleanMachineId) {
+            return res.status(409).json({
+                success: false,
+                error: "License is already activated on another device.",
+            });
+        }
+
+        db.prepare(
+            `UPDATE licenses
+             SET user_id = ?, machine_id = ?, activated_at = COALESCE(activated_at, CURRENT_TIMESTAMP)
+             WHERE id = ?`
+        ).run(req.user.userId, cleanMachineId, license.id);
+
+        return res.json({
+            success: true,
+            message: "License activated successfully.",
+            license: {
+                licenseKey: license.license_key,
+                status: license.status,
+                machineId: cleanMachineId,
+                activatedAt: license.activated_at,
+            },
+        });
+    } catch (error) {
+        console.error("License activation failed:", error);
+
+        return res.status(500).json({
+            success: false,
+            error: "License activation failed.",
+        });
+    }
+}
+
+export function validateLicense(req, res) {
+    try {
+        const { licenseKey, machineId } = req.body;
+
+        if (!licenseKey || !machineId) {
+            return res.status(400).json({
+                success: false,
+                error: "License key and machine ID are required.",
+            });
+        }
+
+        const license = db
+            .prepare(
+                `SELECT license_key, status, machine_id, activated_at
+                 FROM licenses
+                 WHERE license_key = ? AND user_id = ?`
+            )
+            .get(licenseKey.trim(), req.user.userId);
+
+        const isValid = Boolean(
+            license &&
+            license.status === "active" &&
+            license.machine_id === machineId.trim()
+        );
+
+        return res.json({
+            success: true,
+            valid: isValid,
+            license: license || null,
+        });
+    } catch (error) {
+        console.error("License validation failed:", error);
+
+        return res.status(500).json({
+            success: false,
+            error: "License validation failed.",
+        });
+    }
+}

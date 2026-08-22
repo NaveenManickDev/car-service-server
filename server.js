@@ -1,18 +1,17 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import "dotenv/config";
 
 import db from "./database/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
+import licenseRoutes from "./routes/licenseRoutes.js";
 
 import swaggerUi from "swagger-ui-express";
 import swaggerJsdoc from "swagger-jsdoc";
 
 import path from "path";
 import { fileURLToPath } from "url";
-
-dotenv.config();
 
 const app = express();
 
@@ -35,6 +34,15 @@ const swaggerOptions = {
                 url: `http://localhost:${PORT}`,
             },
         ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT",
+                },
+            },
+        },
     },
 
     apis: [
@@ -62,6 +70,11 @@ app.use(express.json());
 app.use(
     "/api/auth",
     authRoutes
+);
+
+app.use(
+    "/api/license",
+    licenseRoutes
 );
 
 // =====================================
