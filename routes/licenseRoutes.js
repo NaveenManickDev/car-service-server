@@ -3,6 +3,8 @@ import express from "express";
 import {
     activateLicense,
     createLicense,
+    deleteLicense,
+    listLicenses,
     validateLicense,
 } from "../controllers/licenseController.js";
 import { requireAdmin } from "../middleware/adminMiddleware.js";
@@ -46,6 +48,65 @@ router.post(
     "/admin/create",
     requireAdmin,
     createLicense
+);
+
+/**
+ * @swagger
+ * /api/license/admin/list:
+ *   get:
+ *     summary: List all license keys
+ *     tags: [License Admin]
+ *     parameters:
+ *       - in: header
+ *         name: x-admin-secret
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: License list
+ *       401:
+ *         description: Invalid admin credentials
+ *       503:
+ *         description: Admin secret is not configured
+ */
+router.get(
+    "/admin/list",
+    requireAdmin,
+    listLicenses
+);
+
+/**
+ * @swagger
+ * /api/license/admin/{id}:
+ *   delete:
+ *     summary: Delete a license key
+ *     tags: [License Admin]
+ *     parameters:
+ *       - in: header
+ *         name: x-admin-secret
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: License deleted successfully
+ *       401:
+ *         description: Invalid admin credentials
+ *       404:
+ *         description: License not found
+ *       503:
+ *         description: Admin secret is not configured
+ */
+router.delete(
+    "/admin/:id",
+    requireAdmin,
+    deleteLicense
 );
 
 /**

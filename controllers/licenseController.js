@@ -39,6 +39,46 @@ export function createLicense(req, res) {
     }
 }
 
+export function listLicenses(req, res) {
+    const licenses = db
+        .prepare(
+            `SELECT id, license_key, user_id, status, machine_id, activated_at, created_at
+             FROM licenses
+             ORDER BY created_at DESC, id DESC`
+        )
+        .all();
+
+    return res.json({
+        success: true,
+        licenses,
+    });
+}
+
+export function deleteLicense(req, res) {
+    const license = db
+        .prepare("SELECT id, license_key FROM licenses WHERE id = ?")
+        .get(req.params.id);
+
+    if (!license) {
+        return res.status(404).json({
+            success: false,
+            error: "License not found.",
+        });
+    }
+
+    db.prepare("DELETE FROM licenses WHERE id = ?")
+        .run(req.params.id);
+
+    return res.json({
+        success: true,
+        message: "License deleted successfully.",
+        license: {
+            id: license.id,
+            licenseKey: license.license_key,
+        },
+    });
+}
+
 export function activateLicense(req, res) {
     try {
         const { licenseKey, machineId } = req.body;
